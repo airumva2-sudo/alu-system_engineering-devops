@@ -5,22 +5,25 @@
 CONF="/etc/nginx/sites-available/default"
 TARGET="https://www.youtube.com/watch?v=QH2-TGUlwu4"
 
+# Use sudo only when not already root (some environments have no sudo)
+if [ "$(id -u)" -ne 0 ]; then
+    SUDO="sudo"
+else
+    SUDO=""
+fi
+
 # Install Nginx
-sudo apt-get update -y
-sudo apt-get install -y nginx
+$SUDO apt-get update -y
+$SUDO apt-get install -y nginx
 
 # Serve a simple page at the root
-echo "Hello World!" | sudo tee /var/www/html/index.nginx-debian.html > /dev/null
+echo "Hello World!" | $SUDO tee /var/www/html/index.nginx-debian.html > /dev/null
 
 # Add the redirection rule right after the server_name line (only once)
 if ! grep -q "location /redirect_me" "$CONF"; then
-    sudo sed -i "/server_name _;/a\\
-\\
-\\tlocation /redirect_me {\\
-\\t\\treturn 301 $TARGET;\\
-\\t}" "$CONF"
+    $SUDO sed -i "s|server_name _;|server_name _;\n\n\tlocation /redirect_me {\n\t\treturn 301 $TARGET;\n\t}|" "$CONF"
 fi
 
-# Validate the configuration, then (re)start Nginx
-sudo nginx -t
-sudo service nginx restart
+# Validate the configuration, then make sure Nginx is running with it
+$SUDO nginx -t
+$SUDO service nginx restart || $SUDO nginx
